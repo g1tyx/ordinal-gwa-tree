@@ -8,17 +8,20 @@ function getStartOptions() {
 		msDisplay: "always",
 		theme: "default",
 		hqTree: false,
-		offlineProd: true,
+		offlineProd: false,
 		hideChallenges: false,
 		showStory: true,
-		forceOneTab: true,
+		forceOneTab: false,
 		oldStyle: false,
 		tooltipForcing: true,
-		musicToggle: true,
+    gwaOrdinal: false,
+    ordLength: 5,
+    bhoExponent: false
 	}
 }
 
 function toggleOpt(name) {
+  if (name == "offlineProd")return
 	if (name == "oldStyle" && styleCooldown > 0)
 		return;
 
@@ -51,6 +54,9 @@ const MS_DISPLAYS = ["ALL", "LAST, AUTO, INCOMPLETE", "AUTOMATION, INCOMPLETE", 
 
 const MS_SETTINGS = ["always", "last", "automation", "incomplete", "never"];
 
+function adjustMSDisp() {
+	options.msDisplay = MS_SETTINGS[(MS_SETTINGS.indexOf(options.msDisplay) + 1) % 5];
+}
 function milestoneShown(layer, id) {
 	complete = player[layer].milestones.includes(id);
 	auto = layers[layer].milestones[id].toggles;

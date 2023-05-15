@@ -259,6 +259,7 @@ function NaNcheck(data) {
 }
 function exportSave() {
 	//if (NaNalert) return
+  player.ordinal=""
 	let str = btoa(JSON.stringify(player));
 
 	const el = document.createElement("textarea");
