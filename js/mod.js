@@ -8,12 +8,12 @@ let modInfo = {
 	discordName: "",
 	discordLink: "",
 	initialStartPoints: new Decimal(0), // Used for hard resets and new players
-	offlineLimit: 1,  // In hours
+	offlineLimit: 0,  // In hours
 }
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.4",
+	num: "0.4.2",
 	name: "The Collapse Update",
 }
 
@@ -149,8 +149,8 @@ function fixOldSave(oldVersion){
   if (player.ordinal !== undefined) delete player.ordinal
   if (oldVersion == "0.3.4" && player.b.boosts.gte(90)){
     player.b.boosts=new Decimal(90)
-    player.b.incrementy=new Decimal(1e102)
-    player.b.psi=new Decimal(1e50)
+    player.b.incrementy=new Decimal(1e100)
+    player.b.psi=new Decimal(1e48)
     
   }
 }

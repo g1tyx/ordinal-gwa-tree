@@ -247,13 +247,14 @@ addLayer("g", {
         if (hasUpgrade("h",101))e=e.mul(5040)
         if (hasUpgrade("b",32))e=e.mul(getBase().sub(hasUpgrade("h",122)?0:4).max(1))
         e=e.pow(Decimal.pow(2,player.b.challenges[32]))
+        if (hasUpgrade("c",12))e=e.pow(7)
         if (inChallenge("b",42))e=e.div(888)
         return e
       }
     },
     21:{
       title: "Dynamic Factor",
-      description(){return "The gwa grows in power over time. Currently: "+(inChallenge("b",21)?"/":"*")+format(this.effect())},
+      description(){return "The gwa grows in power over time. Currently: "+(inChallenge("b",21)?"/":"*")+format(this.effect())+"<br>Cap: "+format(layers.g.dynamicCap())},
       cost(){
         if (player.g.base.eq(3))return new Decimal(1e220)
         if (player.g.base.eq(4))return new Decimal(1e111)
@@ -346,25 +347,36 @@ addLayer("g", {
       unlocked(){return hasMilestone(this.layer, this.id-1)}
     },
   },
-  update(diff){
-    if (hasUpgrade("g",21)){
+  dynamicCap(){
+    
       let cap = new Decimal(10)
-      let gain = new Decimal(0.01)
       if (hasUpgrade("b",21) || inChallenge("b",21)){
         cap=cap.mul(10)
+      }
+    cap=cap.mul(Decimal.pow(10,player.b.challenges[21]))
+      if (hasUpgrade("b",53))cap=cap.mul(upgradeEffect("b",53))
+      if (player.g.base.gte(7))cap=cap.mul(buyableEffect("h",32))
+      cap=cap.mul(alephEffect(3))
+      if (hasUpgrade("h",122)){;cap=cap.mul(player.g.base)}
+    if (hasUpgrade("h",111)){
+        cap=cap.sqr()
+      }
+    return cap
+  },
+  update(diff){
+    if (hasUpgrade("g",21)){
+      let gain = new Decimal(0.01)
+      if (hasUpgrade("b",21) || inChallenge("b",21)){
         gain=gain.mul(10)
       }
-      cap=cap.mul(Decimal.pow(10,player.b.challenges[21]))
       gain=gain.mul(Decimal.pow(10,player.b.challenges[21]))
-      if (hasUpgrade("b",53))cap=cap.mul(upgradeEffect("b",53))
       if (player.g.incrementyUnlock)gain=gain.mul(buyableEffect("b",13))
-      if (player.g.base.gte(7))cap=cap.mul(buyableEffect("h",32))
       if (hasUpgrade("h",121))gain=gain.mul(getTotalCompletions())
-      if (hasUpgrade("h",122)){gain=gain.mul(player.g.base);cap=cap.mul(player.g.base)}
+      if (hasUpgrade("h",122)){gain=gain.mul(player.g.base)}
       gain=gain.mul(alephEffect(3))
-      cap=cap.mul(alephEffect(3))
+      let cap = layers.g.dynamicCap()
       if (hasUpgrade("h",111)){
-        player.g.dynamic = player.g.dynamic.sqrt().add(gain.mul(diff)).sqr().min(cap.sqr())
+        player.g.dynamic = player.g.dynamic.sqrt().add(gain.mul(diff)).sqr().min(cap)
       }
       else player.g.dynamic = player.g.dynamic.add(gain.mul(diff)).min(cap)
     }
@@ -391,7 +403,7 @@ addLayer("g", {
     if (l=="c"){
       
       layerDataReset(this.layer, ["milestones", "buyables", "base", "challengeUnlock", "incrementyUnlock"])
-      setBuyableAmount(this.layer, 12, new Decimal(0))
+      setBuyableAmount(this.layer, 12, new Decimal(1))
       if (!hasMilestone("c",1))player.g.milestones=player.g.milestones.filter(x=>x<5)
     }
   },
@@ -436,7 +448,7 @@ addLayer("b", {
     requires(){
       if (player.b.boosts.gte(80)) return Decimal.pow(BHO, player.b.boosts.div(20).sub(2))
       if (player.b.boosts.gte(40)) return Decimal.pow(3, player.b.boosts).mul(12)
-      if (player.g.incrementyUnlock)return Decimal.pow(3, player.b.boosts).mul(12).round().min(BHO)
+      if (player.g.incrementyUnlock)return Decimal.pow(3, player.b.boosts).round().mul(12).round().min(BHO)
       return new Decimal(1e20).pow(Decimal.pow(2.5, player.b.boosts.min(2)).mul(Decimal.pow(2,player.b.boosts.sub(2).max(0))))}, // Can be a function that takes requirement increases into account
     resource: "boosters", // Name of prestige currency
     baseResource(){return (player.g.incrementyUnlock ? "psi ordinal":"gwarkup points")}, // Name of resource prestige is based on
@@ -620,7 +632,7 @@ addLayer("b", {
       currencyInternalName: "incrementy",
       currencyLocation(){return player.b},
       unlocked(){return player.g.incrementyUnlock},
-      effect(){return Decimal.pow(1.1,getTotalCompletions())}
+      effect(){return Decimal.pow(1.1,getTotalCompletions()).pow(hasUpgrade("c",13)?2:1)}
     },
     63:{
       title: "incrementy gain booster #498797411654654",
@@ -899,6 +911,15 @@ addLayer("b", {
     if (hasUpgrade("g",25) || player.g.incrementyUnlock){
       player.b.incrementy=player.b.incrementy.add(getIncrementyGain().mul(diff))
       player.b.psi=player.b.psi.add(getPsiGain().mul(diff))//.min(48630661836227120000)
+    }
+  },
+  doReset(l){
+    if (l=="c"){
+      let k=[]
+      if (hasMilestone("c",3))k.push("upgrades")
+      if (hasMilestone("c",2))k.push("challenges")
+      layerDataReset(this.layer,k)
+      if (hasMilestone("c",3)&&!hasMilestone("c",4))player.b.upgrades=player.b.upgrades.filter(x=>x>50)
     }
   },
   tabFormat: {
@@ -1237,7 +1258,10 @@ addLayer("h", {
   },
   bpowerEffect(){
     let e = player.h.boosterPower.add(100).div(100).log10().div(10)
-    if (e.gt(0.36)){e=e.sqrt().mul(0.6)}
+    if (hasUpgrade("c",22)){
+      if (e.gt(0.4))e=e.mul(0.4).sqrt()
+    }
+    else {if (e.gt(0.36)){e=e.sqrt().mul(0.6)}}
     
     return e
   },
@@ -1249,6 +1273,14 @@ addLayer("h", {
     if (!hasMilestone("g",5))return new Decimal(1)
     let e = player.h.boosterPower.add(1).log10().add(1)
     return e
+  },
+  doReset(l){
+    if (l=="c"){
+      let k=[]
+      if (hasMilestone("c",4))k.push("upgrades")
+      layerDataReset(this.layer,k)
+      player.h.upgrades=player.h.upgrades.filter(x=>x<100)
+    }
   },
   tabFormat: {
     "Hierarchies": {
@@ -1319,18 +1351,24 @@ addLayer("c", {
     hotkeys: [
         {key: "c", description: "C: Collapse", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
     ],
+  passiveGeneration(){
+    return (hasUpgrade("c",24)?0.001:0)
+  },
     layerShown(){return player.g.base.gte(9)},
   getNextAt(){return this.requires()},
   prestigeButtonText(){return "Collapse for <b>+"+formatWhole(this.getResetGain())+"</b> cardinals.<br>Requires: "+numToPsi(this.requires())+" psi ordinal"},
   getResetGain(){
     if (!player.c.unlocked)return new Decimal(3)
-      return Decimal.pow(2,player.b.boosts.sub(90).div(10)).add(1e-14).mul(3).floor().max(3)
+      let g= Decimal.pow(3,player.b.boosts.sub(90).div(10)).add(1e-14).mul(3).floor()
+      if (hasUpgrade("c",23))g=g.mul(upgradeEffect("c",23))
+      return g.max(3)
   },
   canReset(){return player.b.psi.gte(this.requires())},
   branches: ["b"],
   onPrestige(){
-    if (!hasMilestone(1) && player.b.boosts.lte(70)){player.c.milestones.push(1)}
-    if (!hasMilestone(2) && player.b.boosts.lte(40)){player.c.milestones.push(2)}
+    if (!hasMilestone("c",1) && player.b.boosts.lte(70)){player.c.milestones.push(1)}
+    if (!hasMilestone("c",2) && player.b.boosts.lte(55)){player.c.milestones.push(2)}
+    if (!hasMilestone("c",3) && player.b.boosts.lte(40)){player.c.milestones.push(3)}
   },
   
   clickables: {
@@ -1364,22 +1402,94 @@ addLayer("c", {
       unlocked(){return hasMilestone("c",0)}
     },
     2: {
-      requirementDescription: "SM40",
-        effectDescription: "Fill up your house with gwas",
+      requirementDescription: "SM55",
+        effectDescription: "Keep challenge completions",
         done() { return false},
       unlocked(){return hasMilestone("c",1)}
     },
+    3: {
+      requirementDescription: "SM40",
+        effectDescription: "Start with all incrementy upgrades",
+        done() { return false},
+      unlocked(){return hasMilestone("c",2)}
+    },
+    4: {
+      requirementDescription: "SM20",
+        effectDescription: "Keep booster and hierarchy upgrades",
+        done() { return false},
+      unlocked(){return hasMilestone("c",3)}
+    },
   },
-  /*
+  
   upgrades: {
     11:{
-      description(){if (hasUpgrade("h",101))return "Multiply factor effects by (factor number+1)!"
-        return "Multiply factor effects by factor number+1"},
+      title: "CUP1",
+      description(){
+        return "Total Charge boosts Psi ordinal gain"},
       cost(){
-        return new Decimal(1)
+        return new Decimal(10)
       },
     },
-  },*//*
+    12:{
+      title: "CUP2",
+      description(){
+        return "Hepteract factor 7's effect"},
+      cost(){
+        return new Decimal(20)
+      },
+    },
+    13:{
+      title: "CUP3",
+      description(){
+        return "Square <b>The Least Creative Upgrade Name Ever</b>"},
+      cost(){
+        return new Decimal(50)
+      },
+    },
+    14:{
+      title: "CUP4",
+      description(){
+        return "Unlock Overcharge (next update)"},
+      cost(){
+        return new Decimal(100)
+      },
+    },
+    21:{
+      title: "CUP5",
+      description(){
+        return "Incrementy Gain ^1.01"},
+      cost(){
+        return new Decimal(10)
+      },
+    },
+    22:{
+      title: "CUP6",
+      description(){
+        return "Booster power's 3rd effect softcap starts +0.04 later"},
+      cost(){
+        return new Decimal(20)
+      },
+    },
+    23:{
+      title: "CUP7",
+      description(){
+        return "Unspent cardinals boost cardinal gain. Currently: *"+format(this.effect())},
+      cost(){
+        return new Decimal(50)
+      },
+      effect(){
+        return player.c.points.add(1).log10().add(1)
+      },
+    },
+    24:{
+      title: "CUP8",
+      description(){
+        return "Gain 0.1% of cardinals on reset per second"},
+      cost(){
+        return new Decimal(100)
+      },
+    },
+  },/*
   buyables:{
     11: {
         cost(x=getBuyableAmount(this.layer,this.id)) { 
@@ -1407,7 +1517,7 @@ addLayer("c", {
         "main-display",
         ["prestige-button", function(){return true}],
         "blank",
-        ["display-text",function(){return "Base Cardinal gain: 3*2^((FB-90)/10)"}],"blank",
+        ["display-text",function(){return "Base Cardinal gain: 3*3^((FB-90)/10)"}],"blank",
         "clickables",
         "blank",
         ["display-text",function(){
@@ -1430,6 +1540,12 @@ addLayer("c", {
         "milestones"
       ]
     },
+    "Upgrades": {
+      unlocked(){return true},
+      content: [
+        "upgrades"
+      ]
+    }
   }
 })
 const BHO = 48630661836227120000
@@ -1437,18 +1553,19 @@ function T(x){
   return Decimal.mul(x,x.add(1).div(2))
 }
 function alephEffect(x){
-    if (x==1)return player.c.alephs[0].add(1).pow(player.c.alephs[0])
+    if (x==1)return player.c.alephs[0].add(1).mul(5).pow(player.c.alephs[0])
     if (x==2)return player.c.alephs[1].add(1).pow(player.c.alephs[1].add(1).pow(1.5))
     if (x==3)return player.c.alephs[2].add(1).pow(1.5)
-    if (x==4)return player.c.alephs[3].add(1).log10().add(1).pow(4)
+    if (x==4)return player.c.alephs[3].add(1).log10().add(1).pow(4).max(2)
     if (x==5)return player.c.alephs[4].add(1).log10().add(1).sqr()
-    if (x==6)return player.c.alephs[5].add(1).sqr()
-    if (x==7)return player.c.alephs[6].add(1).sqr()
+    if (x==6)return player.c.alephs[5].mul(2).add(1).sqr()
+    if (x==7)return player.c.alephs[6].mul(2).add(1).sqr()
     if (x==8)return player.c.alephs[7].add(1).log2().add(1)
   }
 function numToPsi(num){
-  if (num.gte(BHO) && options.bhoExponent){return "BHO^"+format(num.log(BHO),3)}
-  if (num.gt(BHO)){return "BHOx"+format(num.div(BHO))}
+  let gwa = options.gwaOrdinal
+  if (num.gte(BHO) && options.bhoExponent){return (gwa?"<img src='https://cdn.discordapp.com/emojis/854483367600193566.webp?size=24'>^":"BHO^")+format(num.log(BHO),3)}
+  if (num.gt(BHO)){return (gwa?"<img src='https://cdn.discordapp.com/emojis/854483367600193566.webp?size=24'>x":"BHOx")+format(num.div(BHO))}
   return displayPsiOrd(num.toNumber(), player.maxLength)
 }
 function getIncrementyGain(){
@@ -1470,7 +1587,8 @@ function getIncrementyGain(){
   if (player.g.base.gte(7))gain=gain.mul(layers.h.slowEffect())
   if (hasUpgrade("b",41))gain=gain.mul(player.g.base.sub(5).pow(4))
   if (player.b.challenges[22]>=3)gain=gain.mul(10)
-  gain=gain.mul(alephEffect(4))
+  if(player.c.unlocked)gain=gain.mul(alephEffect(4))
+  if (hasUpgrade("c",21))gain=gain.pow(1.01)
   return gain
 }
 function getPsiGain(){
@@ -1479,6 +1597,7 @@ function getPsiGain(){
   if (hasUpgrade("b",62))gain=gain.mul(upgradeEffect("b",62))
   gain=gain.mul(buyableEffect("b",12))
   gain=gain.mul(alephEffect(5))
+  if (hasUpgrade("c",11)) gain=gain.mul(getBuyableAmount("b",14).max(1))
   return gain
 }
 function numToOP(num, base, iter=0){

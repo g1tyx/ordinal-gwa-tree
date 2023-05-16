@@ -288,6 +288,24 @@ function importSave(imported = undefined, forced = false) {
 		return;
 	}
 }
+function importOther(imported = undefined, forced = false) {
+	if (imported === undefined)
+		imported = document.getElementById("saveImport").value;
+	try {
+		tempPlr = Object.assign(getStartPlayer(), JSON.parse(atob(imported)));
+		if (tempPlr.versionType != modInfo.id && !forced && !confirm("This save appears to be for a different mod! Are you sure you want to import?")) // Wrong save (use "Forced" to force it to accept.)
+			return;
+		player = tempPlr;
+		player.versionType = modInfo.id;
+		fixSave();
+		versionCheck();
+		NaNcheck(save)
+		save();
+		window.location.reload();
+	} catch (e) {
+		return;
+	}
+}
 function versionCheck() {
 	let setVersion = true;
 
