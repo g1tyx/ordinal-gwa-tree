@@ -13,8 +13,8 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.4.2",
-	name: "The Collapse Update",
+	num: "0.4.3",
+	name: "Cardinal Upgrades",
 }
 
 let changelog = `Welcome to ordinal gwarkup, a mod of Ordinal Pringles! :gwa:`
@@ -99,11 +99,12 @@ function numToOrdinal(num, base, iter=0){
     let exponent = num.log(base).add(1e-14).floor()
     let s = numToOrdinal(exponent, base, 0)
     str+=(iter>0?"+":"")+(options.gwaOrdinal?"<img src='https://cdn.discordapp.com/emojis/853002327362895882.webp?size=24'>":"ω")+(exponent.gt(1)?"<sup>"+s+"</sup>":"")
+    if (str.includes("..."))return str
     let coef = num.div(base.pow(exponent).round()).add(1e-14).floor()
     if (coef.gt(1))str+=coef
     let rem = num.sub(base.pow(exponent).round().mul(coef)).round()
-    if (rem.lt(base)){if (rem.gt(0))str+="+"+rem} else {
-    str+=numToOrdinal(rem, base, iter+1)}
+    if (rem.lt(base)){if (rem.gt(0))str+="+"+(iter>=player.maxLength-1?"...":rem)} else if (exponent.log(base).add(1e-14).floor().lt(player.maxLength)) {
+    str+=numToOrdinal(rem, base, iter+1)} else str+="+..."
     return str
   }
 }
@@ -146,6 +147,7 @@ function maxTickLength() {
 // Use this if you need to undo inflation from an older version. If the version is older than the version that fixed the issue,
 // you can cap their current resources with this.
 function fixOldSave(oldVersion){
+  player.c.points=player.c.points.round()
   if (player.ordinal !== undefined) delete player.ordinal
   if (oldVersion == "0.3.4" && player.b.boosts.gte(90)){
     player.b.boosts=new Decimal(90)

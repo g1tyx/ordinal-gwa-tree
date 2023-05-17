@@ -470,10 +470,15 @@ addLayer("b", {
     player.b.boosts=player.b.boosts.add(1)
     if (player.g.incrementyUnlock) {player.b.psi=new Decimal(0)}
   },
+  getBoosters(){
+    let b = T(player.b.boosts)
+    if (hasMilestone("c",3))b=b.add(190)
+    return b
+  },
   clickables: {
     11:{
       canClick(){return true},
-      onClick(){player.b.points=T(player.b.boosts);player.b.upgrades=player.b.upgrades.filter(i=>i>50);boost();player.points=new Decimal(0)},
+      onClick(){player.b.points=layers.b.getBoosters();player.b.upgrades=player.b.upgrades.filter(i=>i>50);boost();player.points=new Decimal(0)},
       display(){return "Respec upgrades"}
     },
   },
@@ -656,7 +661,7 @@ addLayer("b", {
       currencyInternalName: "incrementy",
       currencyLocation(){return player.b},
       unlocked(){return player.g.incrementyUnlock},
-      effect(){return T(player.b.boosts)}
+      effect(){return layers.b.getBoosters()}
     },
     72:{
       title: "ALL 11 ALBANIAS",
@@ -912,6 +917,11 @@ addLayer("b", {
       player.b.incrementy=player.b.incrementy.add(getIncrementyGain().mul(diff))
       player.b.psi=player.b.psi.add(getPsiGain().mul(diff))//.min(48630661836227120000)
     }
+    if (hasMilestone("c",2)){
+      for (let i of [11,12,13]){
+        if (layers.b.buyables[i].canAfford())layers.b.buyables[i].buy()
+      }
+    }
   },
   doReset(l){
     if (l=="c"){
@@ -920,6 +930,7 @@ addLayer("b", {
       if (hasMilestone("c",2))k.push("challenges")
       layerDataReset(this.layer,k)
       if (hasMilestone("c",3)&&!hasMilestone("c",4))player.b.upgrades=player.b.upgrades.filter(x=>x>50)
+      if (hasMilestone("c",3))player.b.points=new Decimal(190)
     }
   },
   tabFormat: {
@@ -980,6 +991,7 @@ addLayer("h", {
       fast: new Decimal(0),
       boosterPower: new Decimal(0),
       charge: new Decimal(0),
+      overcharge: new Decimal(0),
     }},
     color: "#a52a2a",
     requires(){
@@ -1228,6 +1240,8 @@ addLayer("h", {
     if (hasUpgrade("b",42))g=g.mul(Decimal.pow(5, player.b.boosts.sub(30).max(0)))
     if (hasUpgrade("b",43))g=g.mul(1e10)
     g=g.mul(alephEffect(7))
+    
+    if (hasUpgrade("c",14))g=g.pow(player.g.points.add(10).log10().log10().pow(0.1))
     return g.floor()
   },
   slowEffect(){
@@ -1249,15 +1263,19 @@ addLayer("h", {
     if (hasMilestone("g",1)){
       player.h.boosterPower=player.h.boosterPower.add(layers.h.bpowerGain().mul(diff))
     }
+    if (hasUpgrade("c",14)){
+      player.h.overcharge=player.h.overcharge.add(layers.h.overchargeGain().mul(diff))
+    }
   },
   bpowerGain(){
-    let g = (T(player.b.boosts).sub(820)).div(100)
+    let g = (layers.b.getBoosters().sub(820)).div(100)
     if (hasUpgrade("h",113)) g=g.mul(getBuyableAmount("b",14).sqr())
     g=g.mul(alephEffect(8))
     return g.max(0)
   },
   bpowerEffect(){
     let e = player.h.boosterPower.add(100).div(100).log10().div(10)
+    if (hasUpgrade("c",14))e=e.mul(layers.h.overchargeEffect())
     if (hasUpgrade("c",22)){
       if (e.gt(0.4))e=e.mul(0.4).sqrt()
     }
@@ -1267,12 +1285,22 @@ addLayer("h", {
   },
   bpowerEffect2(){
     let e = player.h.boosterPower.div(10).add(1).log10().add(1).pow(-0.1)
+    if (hasUpgrade("c",14))e=e.div(layers.h.overchargeEffect())
     return e
   },
   bpowerEffect3(){
     if (!hasMilestone("g",5))return new Decimal(1)
     let e = player.h.boosterPower.add(1).log10().add(1)
+    if (hasUpgrade("c",14))e=e.pow(layers.h.overchargeEffect())
     return e
+  },
+  overchargeGain(){
+    if (!hasUpgrade("c",14))return new Decimal(0)
+    let gain = getBuyableAmount("b",14).sub(33).max(0)
+    return gain
+  },
+  overchargeEffect(){
+    return player.h.overcharge.add(1).log10().add(1).cbrt().add(9).div(10)
   },
   doReset(l){
     if (l=="c"){
@@ -1306,11 +1334,19 @@ addLayer("h", {
       unlocked(){return hasMilestone("g",1)},
       content: [
         ["display-text",function(){
-          return "You have "+formatWhole(T(player.b.boosts).sub(820))+" excess boosters, producing "+format(layers.h.bpowerGain())+" booster power/s"
+          return "You have "+formatWhole(layers.b.getBoosters().sub(820))+" excess boosters, producing "+format(layers.h.bpowerGain())+" booster power/s"
         }],
         "blank",
         ["display-text",function(){
           return "You have "+format(player.h.boosterPower)+" booster power,<br>adding  "+format(layers.h.bpowerEffect(), 4)+" to <b>Psi Doubler</b>'s base,<br>raising <b>Incrementy Doubler</b>'s cost to the ^"+format(layers.h.bpowerEffect2(), 5)+(hasMilestone("g",5)?",<br>raising <b>AutoBooster</b> to the ^"+format(layers.h.bpowerEffect3(), 4):"")
+        }],
+        "blank",
+        ["display-text",function(){
+          return "You have "+formatWhole(getBuyableAmount("b",14).sub(33))+" excess charge, producing "+format(layers.h.overchargeGain())+" overcharge/s"
+        }],
+        "blank",
+        ["display-text",function(){
+          return "You have "+format(player.h.overcharge)+" overcharge,<br>strengthening all booster power effects by "+format(layers.h.overchargeEffect(), 4)+"x"
         }],
       ]
     },
@@ -1361,19 +1397,20 @@ addLayer("c", {
     if (!player.c.unlocked)return new Decimal(3)
       let g= Decimal.pow(3,player.b.boosts.sub(90).div(10)).add(1e-14).mul(3).floor()
       if (hasUpgrade("c",23))g=g.mul(upgradeEffect("c",23))
-      return g.max(3)
+      return g.max(3).round()
   },
   canReset(){return player.b.psi.gte(this.requires())},
   branches: ["b"],
   onPrestige(){
     if (!hasMilestone("c",1) && player.b.boosts.lte(70)){player.c.milestones.push(1)}
     if (!hasMilestone("c",2) && player.b.boosts.lte(55)){player.c.milestones.push(2)}
-    if (!hasMilestone("c",3) && player.b.boosts.lte(40)){player.c.milestones.push(3)}
+    if (!hasMilestone("c",3) && player.b.boosts.lte(41)){player.c.milestones.push(3)}
+    if (!hasMilestone("c",4) && player.b.boosts.lte(25)){player.c.milestones.push(4)}
   },
   
   clickables: {
     11:{
-      canClick(){return player.c.points.gt(0)},
+      canClick(){return player.c.points.gte(1)},
       onClick(){
         if (player.c.points.lt(1000)){
           for(let i=0;i<1000;i++){
@@ -1403,21 +1440,27 @@ addLayer("c", {
     },
     2: {
       requirementDescription: "SM55",
-        effectDescription: "Keep challenge completions",
+        effectDescription: "Keep challenge completions and autobuy the first 3 incrementy buyables",
         done() { return false},
       unlocked(){return hasMilestone("c",1)}
     },
     3: {
-      requirementDescription: "SM40",
-        effectDescription: "Start with all incrementy upgrades",
+      requirementDescription: "SM41",
+        effectDescription: "Start with all incrementy upgrades and 190 boosters",
         done() { return false},
       unlocked(){return hasMilestone("c",2)}
     },
     4: {
-      requirementDescription: "SM20",
+      requirementDescription: "SM25",
         effectDescription: "Keep booster and hierarchy upgrades",
         done() { return false},
       unlocked(){return hasMilestone("c",3)}
+    },
+    5: {
+      requirementDescription: "SM0",
+        effectDescription: "You just lost the game",
+        done() { return false},
+      unlocked(){return hasMilestone("c",4)}
     },
   },
   
@@ -1449,7 +1492,7 @@ addLayer("c", {
     14:{
       title: "CUP4",
       description(){
-        return "Unlock Overcharge (next update)"},
+        return "Unlock Overcharge and GP raises FGH gain to a power. Currently: "+format(player.g.points.add(10).log10().log10().pow(0.1))},
       cost(){
         return new Decimal(100)
       },
