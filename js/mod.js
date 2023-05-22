@@ -13,8 +13,8 @@ let modInfo = {
 
 // Set your version in num and name
 let VERSION = {
-	num: "0.4.3",
-	name: "Cardinal Upgrades",
+	num: "0.5",
+	name: "Light Mode",
 }
 
 let changelog = `Welcome to ordinal gwarkup, a mod of Ordinal Pringles! :gwa:`
@@ -37,6 +37,7 @@ function canGenPoints(){
 // Calculate points/sec!
 function getBase(){
   let base = player.g.base
+  if (inChallenge("c",11))return new Decimal(10)
   if (hasUpgrade("b",33))base=base.sub(2)
   if (hasUpgrade("h",123))base=base.sub(1)
   if (inChallenge("b",31)) return base
@@ -68,7 +69,7 @@ ordinal=numToOrdinal(player.points, base)+" ("+base+")"
     if (hasUpgrade("g",23))gain=gain.mul(hasUpgrade("h",122)?Decimal.mul(player.g.base,96):96)
         if (inChallenge("b",42))gain=gain.div(888**3)
     }
-    if (hasUpgrade("b",23))gain=gain.mul(player.b.boosts).mul(player.b.boosts.add(1)).div(2)
+    if (hasUpgrade("b",23))gain=gain.mul(layers.b.getBoosters())
     gain=gain.mul(player.points.max(1).pow(player.b.challenges[31]/10))
     gain=gain.mul(Decimal.pow(2,getTotalCompletions()*player.b.challenges[42]))
     if (hasUpgrade("b",51))gain=gain.mul(upgradeEffect("b",51))

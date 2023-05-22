@@ -1,5 +1,5 @@
 // ************ Themes ************
-var themes = ["default", "aqua"]
+var themes = ["default", "aqua", "light"]
 
 var colors = {
 	default: {
@@ -22,9 +22,18 @@ var colors = {
 		background: "#001f3f",
 		background_tooltip: "rgba(0, 15, 31, 0.75)",
 	},
+	light: {
+		1: "#000000",
+		2: "#404040",
+		3: "#808080",
+		color: "#202020",
+		points: "#000000",
+		locked: "#bf8f8f",
+		background: "#ffffff",
+		background_tooltip: "rgba(255, 255, 255, 0.75)",
+	},
 }
 function changeTheme() {
-
 	colors_theme = colors[options.theme || "default"];
 	document.body.style.setProperty('--background', colors_theme["background"]);
 	document.body.style.setProperty('--background_tooltip', colors_theme["background_tooltip"]);
@@ -44,7 +53,6 @@ function switchTheme() {
 	else {
 		index ++;
 		options.theme = themes[index];
-		options.theme = themes[1];
 	}
 	changeTheme();
 	resizeCanvas();

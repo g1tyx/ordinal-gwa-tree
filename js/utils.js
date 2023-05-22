@@ -128,6 +128,7 @@ function clickGrid(layer, id) {
 
 // Function to determine if the player is in a challenge
 function inChallenge(layer, id) {
+  if (layer == "b" && inChallenge("c",11))return true
 	let challenge = player[layer].activeChallenge
 	if (!challenge) return false
 	id = toNumber(id)
