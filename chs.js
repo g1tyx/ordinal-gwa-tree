@@ -153,7 +153,7 @@ var cnItems = {
     "The Lightening": "闪电",
     "Unlock Light Mode, and square": "解锁闪电模式，和平方",
     "Square dynamic effect, and dynamic factor increases 10x faster and caps 10x later, but Incrementy upgrade 6 ^0.6.": "平方动态效果，动态因子增加速度 x10，上限增加10x，但增量升级6 ^0.6。",
-    "": "",
+    "Challenge completions multiply incrementy and dynamic gain": "总挑战次数倍增增量和动态增益",
     "": "",
     "": "",
     "": "",
